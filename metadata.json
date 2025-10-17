@@ -1,0 +1,7 @@
+{
+  "name": "Iron Man OS Simulator",
+  "description": "A futuristic OS interface inspired by Iron Man's JARVIS/FRIDAY, featuring an interactive AI chat powered by Gemini. Experience a slice of Tony Stark's world with dynamic widgets and a holographic design.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
