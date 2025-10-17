@@ -3,6 +3,10 @@ import { GoogleGenAI, Chat } from "@google/genai";
 let ai: GoogleGenAI;
 let chat: Chat;
 
+export const isApiKeySet = (): boolean => {
+  return !!process.env.API_KEY;
+};
+
 function getChatInstance(): Chat {
   if (chat) {
     return chat;

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, memo, useCallback } from 'react';
 import type { ChatMessage } from '../types';
-import { streamAiResponse } from '../services/geminiService';
+import { streamAiResponse, isApiKeySet } from '../services/geminiService';
 import WidgetContainer from './WidgetContainer';
 import { useSound } from '../hooks/useSound';
 import { clickSound, messageSound } from '../assets/sounds';
@@ -61,6 +61,7 @@ const ChatWidget: React.FC = () => {
   const playMessage = useSound(messageSound, 0.5);
 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const apiKeyAvailable = isApiKeySet();
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -86,7 +87,7 @@ const ChatWidget: React.FC = () => {
   }, []);
 
   const toggleListening = useCallback(() => {
-    if (!recognitionRef.current) return;
+    if (!recognitionRef.current || !apiKeyAvailable) return;
     playClick();
     if (isListening) {
       recognitionRef.current.stop();
@@ -95,19 +96,23 @@ const ChatWidget: React.FC = () => {
       recognitionRef.current.start();
       setIsListening(true);
     }
-  }, [isListening, playClick]);
+  }, [isListening, playClick, apiKeyAvailable]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, messages[messages.length - 1]?.text]);
   
   useEffect(() => {
-    setMessages([{ id: 'initial-greeting', sender: 'ai', text: "Good day, Sir. All systems are operational. How may I assist you?"}])
+    if (apiKeyAvailable) {
+      setMessages([{ id: 'initial-greeting', sender: 'ai', text: "Good day, Sir. All systems are operational. How may I assist you?"}])
+    } else {
+      setMessages([{ id: 'api-key-error', sender: 'ai', text: "AI communications offline. System requires administrator configuration."}])
+    }
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isLoading) return;
+    if (!input.trim() || isLoading || !apiKeyAvailable) return;
     playClick();
 
     const userMessage: ChatMessage = {
@@ -183,10 +188,10 @@ const ChatWidget: React.FC = () => {
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder={isListening ? 'Listening...' : "Enter command..."}
+          placeholder={apiKeyAvailable ? (isListening ? 'Listening...' : "Enter command...") : 'AI OFFLINE'}
           aria-label="Chat input"
           className="flex-grow bg-black/30 border border-cyan-500/50 rounded-md px-3 py-2 text-cyan-200 placeholder-cyan-600/70 focus:outline-none focus:ring-2 focus:ring-cyan-400 transition-all"
-          disabled={isLoading}
+          disabled={isLoading || !apiKeyAvailable}
         />
         {recognitionRef.current && (
            <button
@@ -194,13 +199,14 @@ const ChatWidget: React.FC = () => {
             onClick={toggleListening}
             aria-label={isListening ? 'Stop listening' : 'Start listening'}
             className="bg-black/30 border border-cyan-500/50 text-slate-900 font-bold px-3 py-2 rounded-md hover:bg-cyan-900/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+            disabled={isLoading || !apiKeyAvailable}
            >
              <MicIcon isListening={isListening}/>
            </button>
         )}
         <button
           type="submit"
-          disabled={isLoading || !input.trim()}
+          disabled={isLoading || !input.trim() || !apiKeyAvailable}
           aria-label="Send message"
           className="bg-cyan-500/80 text-slate-900 font-bold px-4 py-2 rounded-md hover:bg-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
